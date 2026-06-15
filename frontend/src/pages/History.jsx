@@ -101,8 +101,7 @@ function History() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-3 text-gray-500 font-medium">Date</th>
-                  <th className="text-left px-6 py-3 text-gray-500 font-medium">Symptom</th>
-                  <th className="text-left px-6 py-3 text-gray-500 font-medium">Severity</th>
+                  <th className="text-left px-6 py-3 text-gray-500 font-medium">Symptoms</th>
                   <th className="text-left px-6 py-3 text-gray-500 font-medium">Notes</th>
                   <th className="px-6 py-3"></th>
                 </tr>
@@ -110,15 +109,21 @@ function History() {
               <tbody>
                 {filteredLogs.map((log, i) => (
                   <tr key={log.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-6 py-4 text-gray-700">{log.date}</td>
-                    <td className="px-6 py-4 text-gray-700 capitalize">{log.symptom}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${severityColor(log.severity)}`}>
-                        {log.severity}/10
-                      </span>
+                    <td className="px-6 py-4 text-gray-700 align-top">{log.date}</td>
+                    <td className="px-6 py-4 align-top">
+                      <div className="flex flex-col gap-1">
+                        {log.symptoms.map((s, j) => (
+                          <div key={j} className="flex items-center gap-2">
+                            <span className="text-gray-700 capitalize">{s.symptom}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${severityColor(s.severity)}`}>
+                              {s.severity}/10
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-500">{log.notes || '—'}</td>
-                    <td className="px-6 py-4 text-right flex gap-3 justify-end">
+                    <td className="px-6 py-4 text-gray-500 align-top">{log.notes || '—'}</td>
+                    <td className="px-6 py-4 text-right align-top flex gap-3 justify-end">
                       <button
                         onClick={() => navigate(`/edit/${log.id}`)}
                         className="text-blue-400 hover:text-blue-600 text-xs"

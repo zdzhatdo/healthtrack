@@ -1,8 +1,6 @@
-# defines what data looks like coming in and out of the API
-
 from pydantic import BaseModel, EmailStr
 from datetime import date, datetime
-from typing import Optional
+from typing import Optional, List
 
 # Auth schemas
 class UserRegister(BaseModel):
@@ -17,20 +15,31 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+# Symptom schemas
+class SymptomCreate(BaseModel):
+    symptom: str
+    severity: int
+
+class SymptomResponse(BaseModel):
+    id: int
+    symptom: str
+    severity: int
+
+    class Config:
+        from_attributes = True
+
 # Health log schemas
 class HealthLogCreate(BaseModel):
     date: date
-    symptom: str
-    severity: int
     notes: Optional[str] = None
+    symptoms: List[SymptomCreate]
 
 class HealthLogResponse(BaseModel):
     id: int
     date: date
-    symptom: str
-    severity: int
     notes: Optional[str]
     created_at: datetime
+    symptoms: List[SymptomResponse]
 
     class Config:
         from_attributes = True

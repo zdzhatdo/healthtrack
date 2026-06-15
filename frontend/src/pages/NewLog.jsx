@@ -5,19 +5,36 @@ import Navbar from '../components/Navbar'
 
 function NewLog() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-  const [symptom, setSymptom] = useState('')
-  const [severity, setSeverity] = useState(5)
   const [notes, setNotes] = useState('')
+  const [symptoms, setSymptoms] = useState([{ symptom: '', severity: 5 }])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
+  const addSymptom = () => {
+    setSymptoms([...symptoms, { symptom: '', severity: 5 }])
+  }
+
+  const removeSymptom = (index) => {
+    setSymptoms(symptoms.filter((_, i) => i !== index))
+  }
+
+  const updateSymptom = (index, field, value) => {
+    const updated = symptoms.map((s, i) => i === index ? { ...s, [field]: value } : s)
+    setSymptoms(updated)
+  }
+
   const handleSubmit = async () => {
-    if (!symptom) { setError('Please enter a symptom'); return }
+    if (symptoms.some(s => !s.symptom)) { setError('Please fill in all symptom fields'); return }
+    if (symptoms.length === 0) { setError('Add at least one symptom'); return }
     setLoading(true)
     setError('')
     try {
-      await createLog({ date, symptom, severity: parseInt(severity), notes })
+      await createLog({
+        date,
+        notes,
+        symptoms: symptoms.map(s => ({ symptom: s.symptom, severity: parseInt(s.severity) }))
+      })
       navigate('/')
     } catch (err) {
       setError(err.response?.data?.detail || 'Something went wrong')
@@ -48,36 +65,63 @@ function NewLog() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Symptom</label>
-            <input
-              type="text"
-              value={symptom}
-              onChange={(e) => setSymptom(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. headache, fatigue, nausea"
-            />
-          </div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">Symptoms</label>
+              <button
+                onClick={addSymptom}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+              >
+                + Add another
+              </button>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Severity — <span className="text-blue-600 font-semibold">{severity} / 10</span>
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
-              className="w-full accent-blue-600"
-            />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>Mild</span>
-              <span>Severe</span>
+            <div className="flex flex-col gap-3">
+              {symptoms.map((s, i) => (
+                <div key={i} className="border border-gray-200 rounded-lg p-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Symptom {i + 1}</span>
+                    {symptoms.length > 1 && (
+                      <button
+                        onClick={() => removeSymptom(i)}
+                        className="text-xs text-red-400 hover:text-red-600"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={s.symptom}
+                    onChange={(e) => updateSymptom(i, 'symptom', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. headache, fatigue, nausea"
+                  />
+                  <div>
+                    <label className="text-xs text-gray-500">
+                      Severity — <span className="text-blue-600 font-semibold">{s.severity}/10</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={s.severity}
+                      onChange={(e) => updateSymptom(i, 'severity', e.target.value)}
+                      className="w-full accent-blue-600"
+                    />
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>Mild</span>
+                      <span>Severe</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes <span className="text-gray-400">(optional)</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes <span className="text-gray-400">(optional)</span>
+            </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

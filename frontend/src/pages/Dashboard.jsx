@@ -25,8 +25,13 @@ const barColors = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe']
         const [summaryRes, logsRes] = await Promise.all([getSummary(), getLogs()])
         setSummary(summaryRes.data)
         const sorted = logsRes.data
-          .sort((a, b) => new Date(a.date) - new Date(b.date))
-          .map(log => ({ date: log.date, severity: log.severity, symptom: log.symptom }))
+        // flatten all symptoms into individual data points for the chart
+        .flatMap(log => log.symptoms.map(s => ({
+            date: log.date,
+            severity: s.severity,
+            symptom: s.symptom
+        })))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
         setLogs(sorted)
       } catch (err) {
         console.log(err)
