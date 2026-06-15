@@ -1,12 +1,23 @@
 import { useEffect, useState } from 'react'
 import { getSummary, getLogs } from '../api'
 import Navbar from '../components/Navbar'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
 
 function Dashboard() {
   const [summary, setSummary] = useState(null)
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
+
+  const symptomData = Object.values(
+    logs.reduce((acc, log) => {
+        if (!acc[log.symptom]) acc[log.symptom] = { symptom: log.symptom, total: 0, count: 0 }
+        acc[log.symptom].total += log.severity
+        acc[log.symptom].count += 1
+        return acc
+    }, {})
+  ).map(s => ({ symptom: s.symptom, avgSeverity: parseFloat((s.total / s.count).toFixed(1)) })).sort((a, b) => b.avgSeverity - a.avgSeverity)
+
+const barColors = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe']
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,7 +44,7 @@ function Dashboard() {
     </div>
   )
 
-  return (
+return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
       <div className="max-w-4xl mx-auto px-6 py-8">
@@ -72,6 +83,26 @@ function Dashboard() {
             </ResponsiveContainer>
           )}
         </div>
+
+        {symptomData.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-4">Average Severity by Symptom</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={symptomData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="symptom" tick={{ fontSize: 12 }} />
+                <YAxis domain={[0, 10]} tick={{ fontSize: 12 }} />
+                <Tooltip formatter={(value) => [`${value}/10`, 'Avg Severity']} />
+                <Bar dataKey="avgSeverity" radius={[4, 4, 0, 0]}>
+                  {symptomData.map((_, i) => (
+                    <Cell key={i} fill={barColors[i % barColors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
       </div>
     </div>
   )
