@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getSummary, getLogs } from '../api'
+import { getSummary, getLogs, getInsights } from '../api'
 import Navbar from '../components/Navbar'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
 
@@ -22,6 +22,8 @@ function Dashboard() {
     const [logs, setLogs] = useState([])
     const [rawLogs, setRawLogs] = useState([])
     const [loading, setLoading] = useState(true)
+    const [insights, setInsights] = useState([])
+    const [insightsLoading, setInsightsLoading] = useState(false)
 
     const symptomData = Object.values(
         logs.reduce((acc, log) => {
@@ -106,6 +108,18 @@ function Dashboard() {
         }
         fetchData()
     }, [])
+
+    const fetchInsights = async () => {
+        setInsightsLoading(true)
+        try {
+            const res = await getInsights()
+            setInsights(res.data.insights)
+        } catch (err) {
+            console.log(err)
+        } finally {
+            setInsightsLoading(false)
+        }
+    }
 
     if (loading) return (
         <div className="min-h-screen bg-gray-100">
@@ -206,6 +220,42 @@ function Dashboard() {
                         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-100 inline-block"></span>Moderate (4–6)</span>
                         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100 inline-block"></span>Severe (7–10)</span>
                     </div>
+                </div>
+
+                {/* ai insights */}
+                <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-gray-700">AI Health Insights</h3>
+                        <button
+                            onClick={fetchInsights}
+                            disabled={insightsLoading}
+                            className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                        >
+                            {insightsLoading ? 'Analyzing...' : 'Generate Insights'}
+                        </button>
+                    </div>
+
+                    {insights.length === 0 && !insightsLoading && (
+                        <p className="text-sm text-gray-400">Click "Generate Insights" to get AI-powered observations about your health patterns.</p>
+                    )}
+
+                    {insightsLoading && (
+                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            Analyzing your health logs...
+                        </div>
+                    )}
+
+                    {insights.length > 0 && !insightsLoading && (
+                        <ul className="flex flex-col gap-3">
+                            {insights.map((insight, i) => (
+                                <li key={i} className="flex gap-3 text-sm text-gray-600">
+                                    <span className="text-blue-600 font-bold shrink-0">{i + 1}.</span>
+                                    <span>{insight}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
 
             </div>

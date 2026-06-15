@@ -98,3 +98,6 @@ export const deleteLog = (id) =>
 
 export const getSummary = () =>
     api.get('/logs/summary')
+
+export const getInsights = () =>
+    api.get('/insights/')

@@ -4,6 +4,7 @@ from database import engine
 import models
 import auth
 import logs
+import insights
 
 # tell SQLalchemy to create tables defined by models
 models.Base.metadata.create_all(bind=engine)
@@ -26,6 +27,7 @@ app.add_middleware(
 # routing
 app.include_router(auth.router)
 app.include_router(logs.router)
+app.include_router(insights.router)
 
 @app.get("/")
 def root():
