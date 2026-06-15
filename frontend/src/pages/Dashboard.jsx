@@ -59,6 +59,28 @@ function Dashboard() {
 
     const weekData = weeklyReport()
 
+    // calculate current logging streak in days
+    const calculateStreak = () => {
+        if (rawLogs.length === 0) return 0
+        const loggedDates = new Set(rawLogs.map(l => l.date))
+        let streak = 0
+        let d = new Date()
+        // check today first, if no log today start from yesterday
+        const today = d.toISOString().split('T')[0]
+        if (!loggedDates.has(today)) {
+            d.setDate(d.getDate() - 1)
+        }
+        while (true) {
+            const dateStr = d.toISOString().split('T')[0]
+            if (!loggedDates.has(dateStr)) break
+            streak++
+            d.setDate(d.getDate() - 1)
+        }
+        return streak
+    }
+
+    const streak = calculateStreak()
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -98,7 +120,7 @@ function Dashboard() {
             <div className="max-w-4xl mx-auto px-6 py-8">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Your Health Overview</h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"> {/* adjusted for mobile-friendliness */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8"> {/* adjusted for mobile-friendliness */}
                     <div className="bg-white rounded-xl shadow-sm p-5">
                         <p className="text-sm text-gray-500 mb-1">Total Logs</p>
                         <p className="text-3xl font-bold text-blue-600">{summary?.total_logs ?? 0}</p>
@@ -110,6 +132,10 @@ function Dashboard() {
                     <div className="bg-white rounded-xl shadow-sm p-5">
                         <p className="text-sm text-gray-500 mb-1">Most Common</p>
                         <p className="text-3xl font-bold text-blue-600 truncate">{summary?.most_common_symptom ?? '—'}</p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-sm p-5"> {/*streaks */}
+                        <p className="text-sm text-gray-500 mb-1">Current Streak</p>
+                        <p className="text-3xl font-bold text-blue-600">{streak} {streak === 1 ? 'day' : 'days'}</p>
                     </div>
                 </div>
 
