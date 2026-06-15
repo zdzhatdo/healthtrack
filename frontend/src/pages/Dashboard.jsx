@@ -50,7 +50,7 @@ return (
       <div className="max-w-4xl mx-auto px-6 py-8">
         <h2 className="text-xl font-bold text-gray-800 mb-6">Your Health Overview</h2>
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"> {/*adjusted for mobile-friendliness */}
           <div className="bg-white rounded-xl shadow-sm p-5">
             <p className="text-sm text-gray-500 mb-1">Total Logs</p>
             <p className="text-3xl font-bold text-blue-600">{summary?.total_logs ?? 0}</p>

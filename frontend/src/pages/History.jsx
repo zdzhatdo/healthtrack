@@ -96,7 +96,7 @@ function History() {
             {logs.length === 0 ? 'No logs yet — add your first entry from the New Log page' : 'No logs match your date filter'}
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden overflow-x-auto"> {/* adjusted for mobile-friendliness (scroll horizontally without clipped) */}
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
