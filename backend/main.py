@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.security import HTTPBearer
+from fastapi.middleware.cors import CORSMiddleware
 from database import engine
 import models
 import auth
@@ -14,7 +15,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
-security = HTTPBearer()
+# adding middleware to fix CORS blocking
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # routing
 app.include_router(auth.router)
