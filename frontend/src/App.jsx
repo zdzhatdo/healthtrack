@@ -3,6 +3,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import NewLog from './pages/NewLog'
 import History from './pages/History'
+import EditLog from './pages/EditLog'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -17,6 +18,7 @@ function App() {
         <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/new" element={<PrivateRoute><NewLog /></PrivateRoute>} />
         <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
+        <Route path="/edit/:id" element={<PrivateRoute><EditLog /></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   )

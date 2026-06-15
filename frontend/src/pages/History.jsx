@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getLogs, deleteLog } from '../api'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 
 function History() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   const fetchLogs = async () => {
     try {
@@ -76,13 +78,19 @@ function History() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-500">{log.notes || '—'}</td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleDelete(log.id)}
-                        className="text-red-400 hover:text-red-600 text-xs"
-                      >
-                        Delete
-                      </button>
+                    <td className="px-6 py-4 text-right flex gap-3 justify-end">
+                        <button
+                            onClick={() => navigate(`/edit/${log.id}`)}
+                            className="text-blue-400 hover:text-blue-600 text-xs"
+                        >
+                            Edit
+                        </button>
+                        <button
+                            onClick={() => handleDelete(log.id)}
+                            className="text-red-400 hover:text-red-600 text-xs"
+                        >
+                            Delete
+                        </button>
                     </td>
                   </tr>
                 ))}
