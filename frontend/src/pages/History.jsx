@@ -6,7 +6,16 @@ import Navbar from '../components/Navbar'
 function History() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const navigate = useNavigate()
+
+  // filter logs based on selected dates
+  const filteredLogs = logs.filter(log => {
+    if (startDate && log.date < startDate) return false
+    if (endDate && log.date > endDate) return false
+    return true
+  })
 
   const fetchLogs = async () => {
     try {
@@ -51,9 +60,40 @@ function History() {
       <div className="max-w-4xl mx-auto px-6 py-8">
         <h2 className="text-xl font-bold text-gray-800 mb-6">Log History</h2>
 
-        {logs.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex items-center gap-4 flex-wrap">
+          <span className="text-sm text-gray-500 font-medium">Filter by date</span>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500">From</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500">To</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {(startDate || endDate) && (
+            <button
+              onClick={() => { setStartDate(''); setEndDate('') }}
+              className="text-sm text-blue-500 hover:text-blue-700"
+            >
+              Clear
+            </button>
+          )}
+          <span className="text-sm text-gray-400 ml-auto">{filteredLogs.length} of {logs.length} logs</span>
+        </div>
+
+        {filteredLogs.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm p-8 text-center text-gray-400 text-sm">
-            No logs yet — add your first entry from the New Log page
+            {logs.length === 0 ? 'No logs yet — add your first entry from the New Log page' : 'No logs match your date filter'}
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -68,7 +108,7 @@ function History() {
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log, i) => (
+                {filteredLogs.map((log, i) => (
                   <tr key={log.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                     <td className="px-6 py-4 text-gray-700">{log.date}</td>
                     <td className="px-6 py-4 text-gray-700 capitalize">{log.symptom}</td>
@@ -79,18 +119,18 @@ function History() {
                     </td>
                     <td className="px-6 py-4 text-gray-500">{log.notes || '—'}</td>
                     <td className="px-6 py-4 text-right flex gap-3 justify-end">
-                        <button
-                            onClick={() => navigate(`/edit/${log.id}`)}
-                            className="text-blue-400 hover:text-blue-600 text-xs"
-                        >
-                            Edit
-                        </button>
-                        <button
-                            onClick={() => handleDelete(log.id)}
-                            className="text-red-400 hover:text-red-600 text-xs"
-                        >
-                            Delete
-                        </button>
+                      <button
+                        onClick={() => navigate(`/edit/${log.id}`)}
+                        className="text-blue-400 hover:text-blue-600 text-xs"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(log.id)}
+                        className="text-red-400 hover:text-red-600 text-xs"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
