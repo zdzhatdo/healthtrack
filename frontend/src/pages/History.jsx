@@ -4,148 +4,180 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 
 function History() {
-  const [logs, setLogs] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const navigate = useNavigate()
+    const [logs, setLogs] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [startDate, setStartDate] = useState('')
+    const [endDate, setEndDate] = useState('')
+    const navigate = useNavigate()
 
-  // filter logs based on selected dates
-  const filteredLogs = logs.filter(log => {
-    if (startDate && log.date < startDate) return false
-    if (endDate && log.date > endDate) return false
-    return true
-  })
+    // filter logs based on selected dates
+    const filteredLogs = logs.filter(log => {
+        if (startDate && log.date < startDate) return false
+        if (endDate && log.date > endDate) return false
+        return true
+    })
 
-  const fetchLogs = async () => {
-    try {
-      const res = await getLogs()
-      const sorted = res.data.sort((a, b) => new Date(b.date) - new Date(a.date))
-      setLogs(sorted)
-    } catch (err) {
-      console.log(err)
-    } finally {
-      setLoading(false)
+    const fetchLogs = async () => {
+        try {
+            const res = await getLogs()
+            const sorted = res.data.sort((a, b) => new Date(b.date) - new Date(a.date))
+            setLogs(sorted)
+        } catch (err) {
+            console.log(err)
+        } finally {
+            setLoading(false)
+        }
     }
-  }
 
-  useEffect(() => { fetchLogs() }, [])
+    useEffect(() => { fetchLogs() }, [])
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this log?')) return
-    try {
-      await deleteLog(id)
-      setLogs(logs.filter(log => log.id !== id))
-    } catch (err) {
-      console.log(err)
+    const handleDelete = async (id) => {
+        if (!window.confirm('Delete this log?')) return
+        try {
+            await deleteLog(id)
+            setLogs(logs.filter(log => log.id !== id))
+        } catch (err) {
+            console.log(err)
+        }
     }
-  }
 
-  const severityColor = (s) => {
-    if (s <= 3) return 'text-green-600 bg-green-50'
-    if (s <= 6) return 'text-yellow-600 bg-yellow-50'
-    return 'text-red-600 bg-red-50'
-  }
+    const severityColor = (s) => {
+        if (s <= 3) return 'text-green-600 bg-green-50'
+        if (s <= 6) return 'text-yellow-600 bg-yellow-50'
+        return 'text-red-600 bg-red-50'
+    }
 
-  if (loading) return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <div className="flex items-center justify-center h-64 text-gray-500">Loading...</div>
-    </div>
-  )
+    // export to csv
+    // generate and download CSV of all logs
+    const exportCSV = () => {
+        const rows = [['Date', 'Symptom', 'Severity', 'Notes']]
+        logs.forEach(log => {
+            log.symptoms.forEach(s => {
+                rows.push([
+                    log.date,
+                    s.symptom,
+                    s.severity,
+                    log.notes || ''
+                ])
+            })
+        })
+        const csv = rows.map(r => r.map(cell => `"${cell}"`).join(',')).join('\n')
+        const blob = new Blob([csv], { type: 'text/csv' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'healthtrack-logs.csv'
+        a.click()
+        URL.revokeObjectURL(url)
+    }
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-6">Log History</h2>
-
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex items-center gap-4 flex-wrap">
-          <span className="text-sm text-gray-500 font-medium">Filter by date</span>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500">From</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500">To</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          {(startDate || endDate) && (
-            <button
-              onClick={() => { setStartDate(''); setEndDate('') }}
-              className="text-sm text-blue-500 hover:text-blue-700"
-            >
-              Clear
-            </button>
-          )}
-          <span className="text-sm text-gray-400 ml-auto">{filteredLogs.length} of {logs.length} logs</span>
+    if (loading) return (
+        <div className="min-h-screen bg-gray-100">
+            <Navbar />
+            <div className="flex items-center justify-center h-64 text-gray-500">Loading...</div>
         </div>
+    )
 
-        {filteredLogs.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center text-gray-400 text-sm">
-            {logs.length === 0 ? 'No logs yet — add your first entry from the New Log page' : 'No logs match your date filter'}
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden overflow-x-auto"> {/* adjusted for mobile-friendliness (scroll horizontally without clipped) */}
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-6 py-3 text-gray-500 font-medium">Date</th>
-                  <th className="text-left px-6 py-3 text-gray-500 font-medium">Symptoms</th>
-                  <th className="text-left px-6 py-3 text-gray-500 font-medium">Notes</th>
-                  <th className="px-6 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLogs.map((log, i) => (
-                  <tr key={log.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-6 py-4 text-gray-700 align-top">{log.date}</td>
-                    <td className="px-6 py-4 align-top">
-                      <div className="flex flex-col gap-1">
-                        {log.symptoms.map((s, j) => (
-                          <div key={j} className="flex items-center gap-2">
-                            <span className="text-gray-700 capitalize">{s.symptom}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${severityColor(s.severity)}`}>
-                              {s.severity}/10
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 align-top">{log.notes || '—'}</td>
-                    <td className="px-6 py-4 text-right align-top flex gap-3 justify-end">
-                      <button
-                        onClick={() => navigate(`/edit/${log.id}`)}
-                        className="text-blue-400 hover:text-blue-600 text-xs"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(log.id)}
-                        className="text-red-400 hover:text-red-600 text-xs"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  )
+    return (
+        <div className="min-h-screen bg-gray-100">
+            <Navbar />
+            <div className="max-w-4xl mx-auto px-6 py-8">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-gray-800">Log History</h2>
+                    <button
+                        onClick={exportCSV}
+                        className="text-sm bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
+                    >
+                        Export CSV
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex items-center gap-4 flex-wrap">
+                    <span className="text-sm text-gray-500 font-medium">Filter by date</span>
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm text-gray-500">From</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm text-gray-500">To</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    {(startDate || endDate) && (
+                        <button
+                            onClick={() => { setStartDate(''); setEndDate('') }}
+                            className="text-sm text-blue-500 hover:text-blue-700"
+                        >
+                            Clear
+                        </button>
+                    )}
+                    <span className="text-sm text-gray-400 ml-auto">{filteredLogs.length} of {logs.length} logs</span>
+                </div>
+
+                {filteredLogs.length === 0 ? (
+                    <div className="bg-white rounded-xl shadow-sm p-8 text-center text-gray-400 text-sm">
+                        {logs.length === 0 ? 'No logs yet — add your first entry from the New Log page' : 'No logs match your date filter'}
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden overflow-x-auto"> {/* adjusted for mobile-friendliness (scroll horizontally without clipped) */}
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th className="text-left px-6 py-3 text-gray-500 font-medium">Date</th>
+                                    <th className="text-left px-6 py-3 text-gray-500 font-medium">Symptoms</th>
+                                    <th className="text-left px-6 py-3 text-gray-500 font-medium">Notes</th>
+                                    <th className="px-6 py-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredLogs.map((log, i) => (
+                                    <tr key={log.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                        <td className="px-6 py-4 text-gray-700 align-top">{log.date}</td>
+                                        <td className="px-6 py-4 align-top">
+                                            <div className="flex flex-col gap-1">
+                                                {log.symptoms.map((s, j) => (
+                                                    <div key={j} className="flex items-center gap-2">
+                                                        <span className="text-gray-700 capitalize">{s.symptom}</span>
+                                                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${severityColor(s.severity)}`}>
+                                                            {s.severity}/10
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-500 align-top">{log.notes || '—'}</td>
+                                        <td className="px-6 py-4 text-right align-top flex gap-3 justify-end">
+                                            <button
+                                                onClick={() => navigate(`/edit/${log.id}`)}
+                                                className="text-blue-400 hover:text-blue-600 text-xs"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(log.id)}
+                                                className="text-red-400 hover:text-red-600 text-xs"
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
 }
 
 export default History
