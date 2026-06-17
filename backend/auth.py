@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -9,6 +11,8 @@ import models
 import schemas
 import os
 from dotenv import load_dotenv
+
+limiter = Limiter(key_func=get_remote_address)
 
 load_dotenv()
 
@@ -46,7 +50,6 @@ def get_current_user(token: str, db: Session):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        # make sure this is an access token, not a refresh token
         if payload.get("type") != "access":
             raise credentials_exception
         email: str = payload.get("sub")
@@ -60,7 +63,8 @@ def get_current_user(token: str, db: Session):
     return user
 
 @router.post("/register", response_model=schemas.UserResponse)
-def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, user: schemas.UserRegister, db: Session = Depends(get_db)):
     existing = db.query(models.User).filter(models.User.email == user.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -74,20 +78,20 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
     return new_user
 
 @router.post("/login", response_model=schemas.Token)
-def login(user: schemas.UserLogin, response: Response, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, user: schemas.UserLogin, response: Response, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     access_token = create_access_token(data={"sub": db_user.email})
     refresh_token = create_refresh_token(data={"sub": db_user.email})
-    # store refresh token in httpOnly cookie
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
-        httponly=True,        # javascript cannot read this
-        max_age=60 * 60 * 24 * 7,  # 7 days in seconds
+        httponly=True,
+        max_age=60 * 60 * 24 * 7,
         samesite="lax",
-        secure=False          # set to True in production with HTTPS
+        secure=False
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -113,6 +117,5 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
 
 @router.post("/logout")
 def logout(response: Response):
-    # clear the refresh token cookie
     response.delete_cookie("refresh_token")
     return {"message": "Logged out"}
