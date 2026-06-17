@@ -62,6 +62,15 @@ def get_current_user(token: str, db: Session):
         raise credentials_exception
     return user
 
+def require_admin(token: str, db: Session):
+    user = get_current_user(token, db)
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return user
+
 @router.post("/register", response_model=schemas.UserResponse)
 @limiter.limit("5/minute")
 def register(request: Request, user: schemas.UserRegister, db: Session = Depends(get_db)):

@@ -8,6 +8,7 @@ import models
 import auth
 import logs
 import insights
+import admin
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -33,6 +34,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(logs.router)
 app.include_router(insights.router)
+app.include_router(admin.router)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
