@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const BASE_URL = 'https://healthtrack-production-8d0e.up.railway.app/'
+// const BASE_URL = 'https://healthtrack-production-8d0e.up.railway.app/'
+const BASE_URL = 'http://localhost:8000'
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -101,3 +102,6 @@ export const getSummary = () =>
 
 export const getInsights = () =>
     api.get('/insights/')
+
+export const verifyEmail = (token) =>
+    api.get(`/auth/verify?token=${token}`)
