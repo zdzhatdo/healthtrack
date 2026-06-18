@@ -10,11 +10,14 @@ from database import get_db
 import models
 import schemas
 import os
+import resend
+import secrets
 from dotenv import load_dotenv
 
 limiter = Limiter(key_func=get_remote_address)
 
 load_dotenv()
+resend.api_key = os.getenv("RESEND_API_KEY")
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -30,6 +33,23 @@ def hash_password(password: str):
 
 def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password[:72], hashed_password)
+
+def send_verification_email(email: str, token: str):
+    verification_link = f"http://localhost:5173/verify?token={token}"
+    try:
+        resend.Emails.send({
+            "from": "HealthTrack <onboarding@resend.dev>",
+            "to": email,
+            "subject": "Verify your HealthTrack account",
+            "html": f"""
+                <h2>Welcome to HealthTrack!</h2>
+                <p>Click the link below to verify your email and activate your account:</p>
+                <a href="{verification_link}">Verify my email</a>
+                <p>If you didn't sign up for HealthTrack, you can ignore this email.</p>
+            """
+        })
+    except Exception as e:
+        print(f"Failed to send verification email: {e}", flush=True)
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -77,21 +97,39 @@ def register(request: Request, user: schemas.UserRegister, db: Session = Depends
     existing = db.query(models.User).filter(models.User.email == user.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+    verification_token = secrets.token_urlsafe(32)
     new_user = models.User(
         email=user.email,
-        password=hash_password(user.password)
+        password=hash_password(user.password),
+        verification_token=verification_token,
+        is_verified=False
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    send_verification_email(new_user.email, verification_token)
     return new_user
+
+@router.get("/verify")
+def verify_email(token: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.verification_token == token).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+    
+    user.is_verified = True
+    user.verification_token = None
+    db.commit()
+    
+    return {"message": "Email verified successfully"}
 
 @router.post("/login", response_model=schemas.Token)
 @limiter.limit("5/minute")
 def login(request: Request, user: schemas.UserLogin, response: Response, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid credentials")   
+    if not db_user.is_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email before logging in")
     access_token = create_access_token(data={"sub": db_user.email})
     refresh_token = create_refresh_token(data={"sub": db_user.email})
     response.set_cookie(

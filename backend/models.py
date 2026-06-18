@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -10,6 +10,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
     role = Column(String, default="user", nullable=False)
+    is_verified = Column(Boolean, default=False, nullable=False)
+    verification_token = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     logs = relationship("HealthLog", back_populates="owner")
