@@ -24,6 +24,11 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
+# Railway sets this automatically in production; locally it won't exist,
+# so cookies stay non-secure for HTTP development but lock down to
+# secure-only in the real deployed environment.
+IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") is not None
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
@@ -115,11 +120,11 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.verification_token == token).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired verification token")
-    
+
     user.is_verified = True
     user.verification_token = None
     db.commit()
-    
+
     return {"message": "Email verified successfully"}
 
 @router.post("/login", response_model=schemas.Token)
@@ -127,7 +132,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 def login(request: Request, user: schemas.UserLogin, response: Response, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")   
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     if not db_user.is_verified:
         raise HTTPException(status_code=403, detail="Please verify your email before logging in")
     access_token = create_access_token(data={"sub": db_user.email})
@@ -138,7 +143,7 @@ def login(request: Request, user: schemas.UserLogin, response: Response, db: Ses
         httponly=True,
         max_age=60 * 60 * 24 * 7,
         samesite="lax",
-        secure=False
+        secure=IS_PRODUCTION
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
