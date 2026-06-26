@@ -27,20 +27,24 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config
+        console.log('interceptor caught error for', originalRequest?.url, 'status:', error.response?.status, '_retry:', originalRequest?._retry)
 
         // if 401 and we haven't already tried to refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true
 
             if (!refreshPromise) {
+                console.log('starting new refresh attempt')
                 refreshPromise = api.post('/auth/refresh')
                     .then(res => {
+                        console.log('refresh succeeded')
                         const newToken = res.data.access_token
                         localStorage.setItem('token', newToken)
                         api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
                         return newToken
                     })
                     .catch(refreshError => {
+                        console.log('refresh failed inside interceptor catch', refreshError)
                         // refresh token also expired — clear the stale token
                         // but let whoever called this (e.g. PrivateRoute)
                         // decide what to do next via React Router, rather
@@ -50,19 +54,25 @@ api.interceptors.response.use(
                         throw refreshError
                     })
                     .finally(() => {
+                        console.log('refresh promise finally block running')
                         refreshPromise = null
                     })
+            } else {
+                console.log('reusing in-flight refresh promise')
             }
 
             try {
                 const newToken = await refreshPromise
+                console.log('got new token, retrying original request')
                 originalRequest.headers.Authorization = `Bearer ${newToken}`
                 return api(originalRequest)
             } catch (refreshError) {
+                console.log('caught refresh error, rejecting original request promise', refreshError)
                 return Promise.reject(refreshError)
             }
         }
 
+        console.log('not a retryable 401, rejecting directly')
         return Promise.reject(error)
     }
 )
