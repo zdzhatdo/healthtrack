@@ -41,9 +41,12 @@ api.interceptors.response.use(
                         return newToken
                     })
                     .catch(refreshError => {
-                        // refresh token also expired — boot to login
+                        // refresh token also expired — clear the stale token
+                        // but let whoever called this (e.g. PrivateRoute)
+                        // decide what to do next via React Router, rather
+                        // than forcing a hard redirect from inside a shared
+                        // utility file
                         localStorage.removeItem('token')
-                        window.location.href = '/login'
                         throw refreshError
                     })
                     .finally(() => {
