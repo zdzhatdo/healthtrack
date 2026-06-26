@@ -40,7 +40,8 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password[:72], hashed_password)
 
 def send_verification_email(email: str, token: str):
-    verification_link = f"http://localhost:5173/verify?token={token}"
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    verification_link = f"{frontend_url}/verify?token={token}"
     try:
         resend.Emails.send({
             "from": "HealthTrack <noreply@zamira.dev>",
