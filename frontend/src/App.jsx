@@ -17,26 +17,15 @@ function PrivateRoute({ children }) {
   const [status, setStatus] = useState('checking')
 
   useEffect(() => {
-    console.log('PrivateRoute effect running')
     const token = localStorage.getItem('token')
-    console.log('token found:', token)
     if (!token) {
-      console.log('no token, setting invalid')
       setStatus('invalid')
       return
     }
     getLogs()
-      .then(() => {
-        console.log('getLogs succeeded')
-        setStatus('valid')
-      })
-      .catch((err) => {
-        console.log('getLogs failed, setting invalid', err)
-        setStatus('invalid')
-      })
+      .then(() => setStatus('valid'))
+      .catch(() => setStatus('invalid'))
   }, [])
-
-  console.log('PrivateRoute rendering with status:', status)
 
   if (status === 'checking') {
     return (
