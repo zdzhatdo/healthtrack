@@ -14,18 +14,29 @@ import { getLogs } from './api'
 // Now it makes a real authenticated request first and only renders the
 // protected content once the backend has actually confirmed the token.
 function PrivateRoute({ children }) {
-  const [status, setStatus] = useState('checking') // 'checking' | 'valid' | 'invalid'
+  const [status, setStatus] = useState('checking')
 
   useEffect(() => {
+    console.log('PrivateRoute effect running')
     const token = localStorage.getItem('token')
+    console.log('token found:', token)
     if (!token) {
+      console.log('no token, setting invalid')
       setStatus('invalid')
       return
     }
     getLogs()
-      .then(() => setStatus('valid'))
-      .catch(() => setStatus('invalid'))
+      .then(() => {
+        console.log('getLogs succeeded')
+        setStatus('valid')
+      })
+      .catch((err) => {
+        console.log('getLogs failed, setting invalid', err)
+        setStatus('invalid')
+      })
   }, [])
+
+  console.log('PrivateRoute rendering with status:', status)
 
   if (status === 'checking') {
     return (
