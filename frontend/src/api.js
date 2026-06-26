@@ -18,19 +18,10 @@ api.interceptors.request.use((config) => {
 })
 
 // automatically try to refresh access token on 401
-let isRefreshing = false
-let failedQueue = []
-
-const processQueue = (error, token = null) => {
-    failedQueue.forEach(prom => {
-        if (error) {
-            prom.reject(error)
-        } else {
-            prom.resolve(token)
-        }
-    })
-    failedQueue = []
-}
+// using a single shared promise instead of a boolean + queue array, so every
+// request that hits a 401 while a refresh is in flight awaits the exact same
+// promise and gets the exact same resolved token, with no ordering ambiguity
+let refreshPromise = null
 
 api.interceptors.response.use(
     (response) => response,
@@ -39,36 +30,33 @@ api.interceptors.response.use(
 
         // if 401 and we haven't already tried to refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
-            // if a refresh is already in progress, queue this request
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject })
-                }).then(token => {
-                    originalRequest.headers.Authorization = `Bearer ${token}`
-                    return api(originalRequest)
-                }).catch(err => Promise.reject(err))
+            originalRequest._retry = true
+
+            if (!refreshPromise) {
+                refreshPromise = api.post('/auth/refresh')
+                    .then(res => {
+                        const newToken = res.data.access_token
+                        localStorage.setItem('token', newToken)
+                        api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+                        return newToken
+                    })
+                    .catch(refreshError => {
+                        // refresh token also expired — boot to login
+                        localStorage.removeItem('token')
+                        window.location.href = '/login'
+                        throw refreshError
+                    })
+                    .finally(() => {
+                        refreshPromise = null
+                    })
             }
 
-            originalRequest._retry = true
-            isRefreshing = true
-
             try {
-                // try to get a new access token using the refresh token cookie
-                const res = await api.post('/auth/refresh')
-                const newToken = res.data.access_token
-                localStorage.setItem('token', newToken)
-                api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
-                processQueue(null, newToken)
+                const newToken = await refreshPromise
                 originalRequest.headers.Authorization = `Bearer ${newToken}`
                 return api(originalRequest)
             } catch (refreshError) {
-                // refresh token also expired — boot to login
-                processQueue(refreshError, null)
-                localStorage.removeItem('token')
-                window.location.href = '/login'
                 return Promise.reject(refreshError)
-            } finally {
-                isRefreshing = false
             }
         }
 
