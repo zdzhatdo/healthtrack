@@ -43,7 +43,7 @@ def send_verification_email(email: str, token: str):
     verification_link = f"http://localhost:5173/verify?token={token}"
     try:
         resend.Emails.send({
-            "from": "HealthTrack <onboarding@resend.dev>",
+            "from": "HealthTrack <noreply@zamira.dev>",
             "to": email,
             "subject": "Verify your HealthTrack account",
             "html": f"""
