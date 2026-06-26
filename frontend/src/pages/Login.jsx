@@ -2,6 +2,19 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login, register } from '../api'
 
+// Pydantic validation errors (422) come back as a list of {msg, loc, type}
+// objects rather than a plain string, so this normalizes both shapes into
+// something safe for React to render as text.
+const getErrorMessage = (err) => {
+    const detail = err.response?.data?.detail
+    if (!detail) return 'Something went wrong'
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) {
+        return detail.map(d => d.msg).join(', ')
+    }
+    return 'Something went wrong'
+}
+
 function Login() {
     const [isRegistering, setIsRegistering] = useState(false)
     const [email, setEmail] = useState('')
@@ -24,7 +37,7 @@ function Login() {
             navigate('/')
         } catch (err) {
             console.log('error', err)
-            setError(err.response?.data?.detail || 'Something went wrong')
+            setError(getErrorMessage(err))
         }
     }
 
